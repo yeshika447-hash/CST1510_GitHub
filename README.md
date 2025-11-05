@@ -1,1 +1,1 @@
-# CST1510_Week7
+# CST1510_GitHub
