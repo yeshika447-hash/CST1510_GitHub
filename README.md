@@ -5,7 +5,7 @@ Student Name: Pooshita (Yeshika) Bhautoo
 Student ID: M01068100
 Course: CST1510 -CW2 - Multi-Domain Intelligence Platform
 
-#Proect description
+#Project description
 This project is a command line based authentication system. It provides basic user registration and login functionalities with password security.
 
 #Features overview
