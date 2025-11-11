@@ -4,74 +4,109 @@ import os
 USER_DATA_FILE = "users.txt"
 
 def hash_password(plain_text_password):
+    """
+    Hashes a password using bcrypt with automatic salt generation.
+    """
     password_bytes = plain_text_password.encode('utf-8')
     salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password_bytes, salt)
-    return hashed_password.decode('utf-8')
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
+
 
 def verify_password(plain_text_password, hashed_password):
-    password_bytes = plain_text_password.encode('utf-8')
-    hashed_password_bytes = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(password_bytes, hashed_password_bytes)
+    """
+    Verifies a plaintext password against a stored bcrypt hash.
+    """
+    plain_bytes = plain_text_password.encode('utf-8')
+    hash_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(plain_bytes, hash_bytes)
+
+def user_exists(username):
+    """
+    Checks if a username already exists in the user database.
+    """
+    if not os.path.exists(USER_DATA_FILE):
+        return False
+
+    with open(USER_DATA_FILE, "r") as file:
+        for line in file:
+            stored_username, _ = line.strip().split(",", 1)
+            if stored_username == username:
+                return True
+    return False
+
 
 def register_user(username, password):
-    hashed_password = hash_password(password)
-    try:
-        with open("users.txt", "a") as f:
-            f.write(f"{username},{hashed_password}\n")
-        print(f"User '{username}' registered")
-        return True
-    except FileNotFoundError:
-        print(f"Error. File not found!")
+    """
+    Registers a new user by hashing their password and storing credentials.
+    """
+    if user_exists(username):
+        print(f"Error: Username '{username}' already exists.")
         return False
-    
-def login_user(username, password):
-    try:
-        with open(USER_DATA_FILE, "r") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                user, hash = [line.strip() for line in line.split(',', 1)]
 
-                if user == username:
-                    if verify_password(password, hash):
-                        print(f"Welcome, {username}!")
-                        return True
-                else:
-                    print("Error: Incorrect password.")
-                    return False
-            print(f"User not found.")
-            return False
-    except FileNotFoundError:
-        print("User database not found.")
+    hashed = hash_password(password)
+
+    with open(USER_DATA_FILE, "a") as file:
+        file.write(f"{username},{hashed}\n")
+
+    print(f"Success: User '{username}' registered successfully!")
+    return True
+
+
+def login_user(username, password):
+    """
+    Authenticates a user by verifying their username and password.
+    """
+    if not os.path.exists(USER_DATA_FILE):
+        print("Error: No users registered yet.")
         return False
+
+    with open(USER_DATA_FILE, "r") as file:
+        for line in file:
+            stored_username, stored_hash = line.strip().split(",", 1)
+            if stored_username == username:
+                if verify_password(password, stored_hash):
+                    print(f"Success: Welcome, {username}!")
+                    return True
+                else:
+                    print("Error: Invalid password.")
+                    return False
+
+    print("Error: Username not found.")
+    return False
 
 def validate_username(username):
+    """
+    Validates username format (3–20 alphanumeric characters).
+    """
     if not username.isalnum():
-        print(f"Username must contain only letters and numbers.")
-        return False
-    if len(username) < 3 or len(username) > 30:
-        print(f"Username should be between 3 and 20 characters.")
-        return False
-    return (True, "")
+        return False, "Username must contain only letters and numbers."
+    if len(username) < 3 or len(username) > 20:
+        return False, "Username must be between 3 and 20 characters."
+    return True, ""
+
 
 def validate_password(password):
-    if len(password) < 6 or len(password) > 50:
-        print(f"Invalid! Password should be between 6 and 50.")
-        return False
-    return (True , "")
+    """
+    Validates password strength (6–50 characters).
+    """
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters long."
+    if len(password) > 50:
+        return False, "Password too long (max 50 characters)."
+    return True, ""
 
-# === INTERFACE ===
 def display_menu():
     """Displays the main menu options."""
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("  MULTI-DOMAIN INTELLIGENCE PLATFORM")
     print("  Secure Authentication System")
-    print("="*50)
+    print("=" * 50)
     print("\n[1] Register a new user")
     print("[2] Login")
     print("[3] Exit")
-    print("-"*50)
+    print("-" * 50)
+
 
 def main():
     """Main program loop."""
@@ -85,7 +120,6 @@ def main():
             # Registration flow
             print("\n--- USER REGISTRATION ---")
             username = input("Enter a username: ").strip()
-
             is_valid, error_msg = validate_username(username)
             if not is_valid:
                 print(f"Error: {error_msg}")
@@ -111,8 +145,7 @@ def main():
             password = input("Enter your password: ").strip()
 
             if login_user(username, password):
-                print("\nYou are now logged in.")
-                input("\nPress Enter to return to main menu...")
+                input("\nPress Enter to return to the main menu...")
 
         elif choice == '3':
             print("\nThank you for using the authentication system.")
